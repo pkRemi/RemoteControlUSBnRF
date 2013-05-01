@@ -1,59 +1,13 @@
-?/********************************************************************
- FileName:      main.c
- Dependencies:  See INCLUDES section
- Processor:     PIC18, PIC24, dsPIC, and PIC32 USB Microcontrollers
- Hardware:      This demo is natively intended to be used on Microchip USB demo
-                boards supported by the MCHPFSUSB stack.  See release notes for
-                support matrix.  This demo can be modified for use on other 
-                hardware platforms.
- Complier:      Microchip C18 (for PIC18), XC16 (for PIC24/dsPIC), XC32 (for PIC32)
- Company:       Microchip Technology, Inc.
-
- Software License Agreement:
-
- The software supplied herewith by Microchip Technology Incorporated
- (the "Company") for its PIC® Microcontroller is intended and
- supplied to you, the Company's customer, for use solely and
- exclusively on Microchip PIC Microcontroller products. The
- software is owned by the Company and/or its supplier, and is
- protected under applicable copyright laws. All rights are reserved.
- Any use in violation of the foregoing restrictions may subject the
- user to criminal sanctions under applicable laws, as well as to
- civil liability for the breach of the terms and conditions of this
- license.
-
- THIS SOFTWARE IS PROVIDED IN AN "AS IS" CONDITION. NO WARRANTIES,
- WHETHER EXPRESS, IMPLIED OR STATUTORY, INCLUDING, BUT NOT LIMITED
- TO, IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- PARTICULAR PURPOSE APPLY TO THIS SOFTWARE. THE COMPANY SHALL NOT,
- IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL OR
- CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
-
-********************************************************************
- File Description:
-
- Change History:
-  Rev   Description
-  ----  -----------------------------------------
-  1.0   Initial release
-  2.1   Updated for simplicity and to use common
-                     coding style
-  2.7b  Improvements to USBCBSendResume(), to make it easier to use.
-  2.9f  Adding new part support
-********************************************************************/
-
 #ifndef MAIN_C
 #define MAIN_C
 
-/** INCLUDES *******************************************************/
-#include "USB"
+#include "USB/usb.h"
 #include "HardwareProfile.h"
-#include "./USB/usb_function_hid.h"
-#include "./USB/usb.h"
-#include "./USB/usb_function_hid.h"
+#include"USB/usb_function_hid.h"
+
 /** CONFIGURATION **************************************************/
 #pragma config PLLDIV   = 5         // (20 MHz crystal on PICDEM FS USB board)
-#pragma config CPUDIV   = OSC1_PLL2   
+#pragma config CPUDIV   = OSC1_PLL2
 #pragma config USBDIV   = 2         // Clock source from 96MHz PLL/2
 #pragma config FOSC     = HSPLL_HS
 #pragma config FCMEN    = OFF
@@ -90,7 +44,6 @@
 //      #pragma config EBTR2    = OFF
 //      #pragma config EBTR3    = OFF
 #pragma config EBTRB    = OFF
-
 /** VARIABLES ******************************************************/
 #pragma udata
 
@@ -99,8 +52,8 @@
 //a USB module accessible portion of microcontroller RAM.
 #pragma udata USB_VARIABLES=0x500
 
-unsigned char ReceivedDataBuffer[64] RX_DATA_BUFFER_ADDRESS;
-unsigned char ToSendDataBuffer[64] TX_DATA_BUFFER_ADDRESS;
+unsigned char ReceivedDataBuffer[64];// RX_DATA_BUFFER_ADDRESS;
+unsigned char ToSendDataBuffer[64];// TX_DATA_BUFFER_ADDRESS;
 
 #pragma udata
 
@@ -119,13 +72,14 @@ void UserInit(void);
 void YourHighPriorityISRCode();
 void YourLowPriorityISRCode();
 void USBCBSendResume(void);
-WORD_VAL ReadPOT(void);
+WORD_VAL ReadPOT(int channel);
+
 
 /** VECTOR REMAPPING ***********************************************/
-#if defined(__18CXX)
+
 //On PIC18 devices, addresses 0x00, 0x08, and 0x18 are used for
 //the reset, high priority interrupt, and low priority interrupt
-//vectors.  However, the current Microchip USB bootloader 
+//vectors.  However, the current Microchip USB bootloader
 //examples are intended to occupy addresses 0x00-0x7FF or
 //0x00-0xFFF depending on which bootloader is used.  Therefore,
 //the bootloader code remaps these vectors to new locations
@@ -140,11 +94,11 @@ WORD_VAL ReadPOT(void);
 #define REMAPPED_RESET_VECTOR_ADDRESS			0x1000
 #define REMAPPED_HIGH_INTERRUPT_VECTOR_ADDRESS	0x1008
 #define REMAPPED_LOW_INTERRUPT_VECTOR_ADDRESS	0x1018
-#elif defined(PROGRAMMABLE_WITH_USB_MCHPUSB_BOOTLOADER)	
+#elif defined(PROGRAMMABLE_WITH_USB_MCHPUSB_BOOTLOADER)
 #define REMAPPED_RESET_VECTOR_ADDRESS			0x800
 #define REMAPPED_HIGH_INTERRUPT_VECTOR_ADDRESS	0x808
 #define REMAPPED_LOW_INTERRUPT_VECTOR_ADDRESS	0x818
-#else	
+#else
 #define REMAPPED_RESET_VECTOR_ADDRESS			0x00
 #define REMAPPED_HIGH_INTERRUPT_VECTOR_ADDRESS	0x08
 #define REMAPPED_LOW_INTERRUPT_VECTOR_ADDRESS	0x18
@@ -179,7 +133,7 @@ void Remapped_Low_ISR(void) {
 //(0x1000 or 0x800, depending upon bootloader), and would execute the "goto _startup".  This
 //would effective reset the application.
 
-//To fix this situation, we should always deliberately place a 
+//To fix this situation, we should always deliberately place a
 //"goto REMAPPED_HIGH_INTERRUPT_VECTOR_ADDRESS" at address 0x08, and a
 //"goto REMAPPED_LOW_INTERRUPT_VECTOR_ADDRESS" at address 0x18.  When the output
 //hex file of this project is programmed with the bootloader, these sections do not
@@ -224,7 +178,6 @@ void YourLowPriorityISRCode() {
     //Etc.
 
 } //This return will be a "retfie", since this is in a #pragma interruptlow section
-
 
 
 /** DECLARATIONS ***************************************************/
@@ -294,188 +247,14 @@ void main(void) {
  *                  are called from here.
  *
  *                  User application initialization routine should
- *                  also be called from here.                  
+ *                  also be called from here.
  *
  * Note:            None
  *******************************************************************/
 static void InitializeSystem(void) {
-#if defined(_PIC14E)
-    ANSELA = 0x00;
-    ANSELB = 0x00;
-    ANSELC = 0x00;
-    TRISA = 0x00;
-    TRISB = 0x00;
-    TRISC = 0x00;
-    OSCTUNE = 0;
-#if defined (USE_INTERNAL_OSC)
-    OSCCON = 0x7C; // PLL enabled, 3x, 16MHz internal osc, SCS external
-    OSCCONbits.SPLLMULT = 1; // 1=3x, 0=4x
-    ACTCON = 0x90; // Clock recovery on, Clock Recovery enabled; SOF packet
-#else
-    OSCCON = 0x3C; // PLL enabled, 3x, 16MHz internal osc, SCS external
-    OSCCONbits.SPLLMULT = 0; // 1=3x, 0=4x
-    ACTCON = 0x00; // Clock recovery off, Clock Recovery enabled; SOF packet
-#endif
-#endif
-
-#if (defined(__18CXX) & !defined(PIC18F87J50_PIM) & !defined(PIC18F97J94_FAMILY))
     ADCON1 |= 0x0F; // Default all pins to digital
-#elif defined(__C30__) || defined __XC16__
-#if defined(__PIC24FJ256DA210__) || defined(__PIC24FJ256GB210__)
-    ANSA = 0x0000;
-    ANSB = 0x0000;
-    ANSC = 0x0000;
-    ANSD = 0x0000;
-    ANSE = 0x0000;
-    ANSF = 0x0000;
-    ANSG = 0x0000;
-#elif defined(__dsPIC33EP512MU810__) || defined (__PIC24EP512GU810__)
-    ANSELA = 0x0000;
-    ANSELB = 0x0000;
-    ANSELC = 0x0000;
-    ANSELD = 0x0000;
-    ANSELE = 0x0000;
-    ANSELG = 0x0000;
 
-    // The dsPIC33EP512MU810 features Peripheral Pin
-    // select. The following statements map UART2 to
-    // device pins which would connect to the the
-    // RX232 transciever on the Explorer 16 board.
 
-    RPINR19 = 0;
-    RPINR19 = 0x64;
-    RPOR9bits.RP101R = 0x3;
-
-#else
-    AD1PCFGL = 0xFFFF;
-#endif        
-#elif defined(__C32__)
-    AD1PCFG = 0xFFFF;
-#endif
-
-#if defined(PIC18F87J50_PIM) || defined(PIC18F46J50_PIM) || defined(PIC18F_STARTER_KIT_1) || defined(PIC18F47J53_PIM)
-    //On the PIC18F87J50 Family of USB microcontrollers, the PLL will not power up and be enabled
-    //by default, even if a PLL enabled oscillator configuration is selected (such as HS+PLL).
-    //This allows the device to power up at a lower initial operating frequency, which can be
-    //advantageous when powered from a source which is not gauranteed to be adequate for 48MHz
-    //operation.  On these devices, user firmware needs to manually set the OSCTUNE<PLLEN> bit to
-    //power up the PLL.
-    {
-        unsigned int pll_startup_counter = 600;
-        OSCTUNEbits.PLLEN = 1; //Enable the PLL and wait 2+ms until the PLL locks before enabling USB module
-        while (pll_startup_counter--);
-    }
-    //Device switches over automatically to PLL output after PLL is locked and ready.
-#endif
-
-#if defined(PIC18F87J50_PIM)
-    //Configure all I/O pins to use digital input buffers.  The PIC18F87J50 Family devices
-    //use the ANCONx registers to control this, which is different from other devices which
-    //use the ADCON1 register for this purpose.
-    WDTCONbits.ADSHR = 1; // Select alternate SFR location to access ANCONx registers
-    ANCON0 = 0xFF; // Default all pins to digital
-    ANCON1 = 0xFF; // Default all pins to digital
-    WDTCONbits.ADSHR = 0; // Select normal SFR locations
-#endif
-
-#if defined(PIC18F97J94_FAMILY)
-    //Configure I/O pins for digital input mode.
-    ANCON1 = 0xFF;
-    ANCON2 = 0xFF;
-    ANCON3 = 0xFF;
-#if(USB_SPEED_OPTION == USB_FULL_SPEED)
-    //Enable INTOSC active clock tuning if full speed
-    OSCCON5 = 0x90; //Enable active clock self tuning for USB operation
-    while (OSCCON2bits.LOCK == 0); //Make sure PLL is locked/frequency is compatible
-    //with USB operation (ex: if using two speed
-    //startup or otherwise performing clock switching)
-#endif
-#endif
-
-#if defined(PIC18F45K50_FAMILY)
-    //Configure oscillator settings for clock settings compatible with USB
-    //operation.  Note: Proper settings depends on USB speed (full or low).
-#if(USB_SPEED_OPTION == USB_FULL_SPEED)
-    OSCTUNE = 0x80; //3X PLL ratio mode selected
-    OSCCON = 0x70; //Switch to 16MHz HFINTOSC
-    OSCCON2 = 0x10; //Enable PLL, SOSC, PRI OSC drivers turned off
-    while (OSCCON2bits.PLLRDY != 1); //Wait for PLL lock
-    *((unsigned char*) 0xFB5) = 0x90; //Enable active clock tuning for USB operation
-#endif
-    //Configure all I/O pins for digital mode (except RA0/AN0 which has POT on demo board)
-    ANSELA = 0x01;
-    ANSELB = 0x00;
-    ANSELC = 0x00;
-    ANSELD = 0x00;
-    ANSELE = 0x00;
-#endif
-
-#if defined(__32MX460F512L__)|| defined(__32MX795F512L__)
-    // Configure the PIC32 core for the best performance
-    // at the operating frequency. The operating frequency is already set to 
-    // 60MHz through Device Config Registers
-    SYSTEMConfigPerformance(60000000);
-#endif
-
-#if defined(__dsPIC33EP512MU810__) || defined (__PIC24EP512GU810__)
-
-    // Configure the device PLL to obtain 60 MIPS operation. The crystal
-    // frequency is 8MHz. Divide 8MHz by 2, multiply by 60 and divide by
-    // 2. This results in Fosc of 120MHz. The CPU clock frequency is
-    // Fcy = Fosc/2 = 60MHz. Wait for the Primary PLL to lock and then
-    // configure the auxilliary PLL to provide 48MHz needed for USB 
-    // Operation.
-
-    PLLFBD = 38; /* M  = 60	*/
-    CLKDIVbits.PLLPOST = 0; /* N1 = 2	*/
-    CLKDIVbits.PLLPRE = 0; /* N2 = 2	*/
-    OSCTUN = 0;
-
-    /*	Initiate Clock Switch to Primary
-     *	Oscillator with PLL (NOSC= 0x3)*/
-
-    __builtin_write_OSCCONH(0x03);
-    __builtin_write_OSCCONL(0x01);
-    while (OSCCONbits.COSC != 0x3);
-
-    // Configuring the auxiliary PLL, since the primary
-    // oscillator provides the source clock to the auxiliary
-    // PLL, the auxiliary oscillator is disabled. Note that
-    // the AUX PLL is enabled. The input 8MHz clock is divided
-    // by 2, multiplied by 24 and then divided by 2. Wait till 
-    // the AUX PLL locks.
-
-    ACLKCON3 = 0x24C1;
-    ACLKDIV3 = 0x7;
-    ACLKCON3bits.ENAPLL = 1;
-    while (ACLKCON3bits.APLLCK != 1);
-
-#endif
-
-#if defined(PIC18F46J50_PIM) || defined(PIC18F_STARTER_KIT_1) || defined(PIC18F47J53_PIM)
-    //Configure all I/O pins to use digital input buffers.  The PIC18F87J50 Family devices
-    //use the ANCONx registers to control this, which is different from other devices which
-    //use the ADCON1 register for this purpose.
-    ANCON0 = 0x7F; // All pins to digital (except AN7: temp sensor)
-    ANCON1 = 0xBF; // Default all pins to digital.  Bandgap on.
-
-#endif
-
-#if defined(PIC24FJ64GB004_PIM) || defined(PIC24FJ256DA210_DEV_BOARD)
-    //On the PIC24FJ64GB004 Family of USB microcontrollers, the PLL will not power up and be enabled
-    //by default, even if a PLL enabled oscillator configuration is selected (such as HS+PLL).
-    //This allows the device to power up at a lower initial operating frequency, which can be
-    //advantageous when powered from a source which is not gauranteed to be adequate for 32MHz
-    //operation.  On these devices, user firmware needs to manually set the CLKDIV<PLLEN> bit to
-    //power up the PLL.
-    {
-        unsigned int pll_startup_counter = 600;
-        CLKDIVbits.PLLEN = 1;
-        while (pll_startup_counter--);
-    }
-
-    //Device switches over automatically to PLL output after PLL is locked and ready.
-#endif
 
 
     //	The USB specifications require that USB peripheral devices must never source
@@ -535,7 +314,7 @@ static void InitializeSystem(void) {
  * Overview:        This routine should take care of all of the demo code
  *                  initialization that is required.
  *
- * Note:            
+ * Note:
  *
  *****************************************************************************/
 void UserInit(void) {
@@ -585,7 +364,7 @@ void ProcessIO(void) {
     //Check if we have received an OUT data packet from the host
     if (!HIDRxHandleBusy(USBOutHandle)) {
         //We just received a packet of data from the USB host.
-        //Check the first byte of the packet to see what command the host 
+        //Check the first byte of the packet to see what command the host
         //application software wants us to fulfill.
         switch (ReceivedDataBuffer[0]) //Look at the data the host sent, to see what kind of application specific command it sent.
         {
@@ -624,13 +403,16 @@ void ProcessIO(void) {
 
                 //Check to make sure the endpoint/buffer is free before we modify the contents
                 if (!HIDTxHandleBusy(USBInHandle)) {
-                    w = ReadPOT(); //Use ADC to read the I/O pin voltage.  See the relevant HardwareProfile - xxxxx.h file for the I/O pin that it will measure.
+                    w = ReadPOT(0); //Use ADC to read the I/O pin voltage.  See the relevant HardwareProfile - xxxxx.h file for the I/O pin that it will measure.
                     //Some demo boards, like the PIC18F87J50 FS USB Plug-In Module board, do not have a potentiometer (when used stand alone).
                     //This function call will still measure the analog voltage on the I/O pin however.  To make the demo more interesting, it
                     //is suggested that an external adjustable analog voltage should be applied to this pin.
                     ToSendDataBuffer[0] = 0x37; //Echo back to the host the command we are fulfilling in the first byte.  In this case, the Read POT (analog voltage) command.
                     ToSendDataBuffer[1] = w.v[0]; //Measured analog voltage LSB
                     ToSendDataBuffer[2] = w.v[1]; //Measured analog voltage MSB
+                    w = ReadPOT(1); //Use ADC to read the I/O pin voltage.  See the relevant HardwareProfile - xxxxx.h file for the I/O pin that it will measure.
+                    ToSendDataBuffer[3] = w.v[0]; //Measured analog voltage LSB
+                    ToSendDataBuffer[4] = w.v[1]; //Measured analog voltage MSB
 
                     //Prepare the USB module to send the data packet to the host
                     USBInHandle = HIDTxPacket(HID_EP, (BYTE*) & ToSendDataBuffer[0], 64);
@@ -638,7 +420,7 @@ void ProcessIO(void) {
             }
                 break;
         }
-        //Re-arm the OUT endpoint, so we can receive the next OUT data packet 
+        //Re-arm the OUT endpoint, so we can receive the next OUT data packet
         //that the host may try to send us.
         USBOutHandle = HIDRxPacket(HID_EP, (BYTE*) & ReceivedDataBuffer, 64);
     }
@@ -657,104 +439,28 @@ void ProcessIO(void) {
  *
  * Side Effects:    ADC buffer value updated
  *
- * Overview:        This function reads the POT and leaves the value in the 
+ * Overview:        This function reads the POT and leaves the value in the
  *                  ADC buffer register
  *
  * Note:            None
  *****************************************************************************/
-WORD_VAL ReadPOT(void) {
+WORD_VAL ReadPOT(int channel) {
     WORD_VAL w;
 
     w.Val = 0;
-
-#if defined(__18CXX) || defined(__XC8)
-#if defined(PIC18F97J94_PIM) 
-    ADCON1Lbits.SAMP = 1; // Start AD sampling/convert sequence
-    while (ADCON1Lbits.DONE == 0); // Wait for result complete
-    w.v[0] = ADCBUF3L;
-    w.v[1] = ADCBUF3H;
-#elif defined(PIC18F87J94_PIM)
-    ADCON1Lbits.SAMP = 1; // Start AD sampling/convert sequence
-    while (ADCON1Lbits.DONE == 0); // Wait for result complete
-    w.v[0] = ADCBUF0L;
-    w.v[1] = ADCBUF0H;
-#else
+    switch(channel){
+    case 0:
+        ADCON0 = 0x01; // Select channel 0 (AN0);
+        break;
+    case 1:
+        ADCON0 = 0x05; // Select channel 1 (AN1);
+        break;
+    }
+    
     ADCON0bits.GO = 1; // Start AD conversion
     while (ADCON0bits.GO); // Wait for conversion
     w.v[0] = ADRESL;
     w.v[1] = ADRESH;
-#endif
-
-#elif defined(__C30__) || defined(__C32__) || defined __XC16__
-#if defined(PIC24FJ256GB110_PIM) || \
-            defined(PIC24FJ256DA210_DEV_BOARD) || \
-            defined(PIC24FJ256GB210_PIM)
-    AD1CHS = 0x5; //MUXA uses AN5
-
-    // Get an ADC sample
-    AD1CON1bits.SAMP = 1; //Start sampling
-    for (w.Val = 0; w.Val < 1000; w.Val++); //Sample delay, conversion start automatically
-    AD1CON1bits.SAMP = 0; //Start sampling
-    for (w.Val = 0; w.Val < 1000; w.Val++); //Sample delay, conversion start automatically
-    while (!AD1CON1bits.DONE); //Wait for conversion to complete
-
-#elif defined(DSPIC33EP512MU810_PIM) || defined (PIC24EP512GU810_PIM)
-
-    // Routine to read the Explorer 16 potentiometer.
-    // Get an ADC sample
-    AD1CHS0bits.CH0SA = 5;
-    AD1CON1bits.SAMP = 1; //Start sampling
-    for (w.Val = 0; w.Val < 1000; w.Val++); //Sample delay, conversion start automatically
-    AD1CON1bits.SAMP = 0; //Start sampling
-    for (w.Val = 0; w.Val < 1000; w.Val++); //Sample delay, conversion start automatically
-    while (!AD1CON1bits.DONE); //Wait for conversion to complete
-
-#elif defined (DSPIC33E_USB_STARTER_KIT)
-
-    w.Val = 0;
-
-#elif defined(PIC24FJ64GB004_PIM) || defined(PIC24FJ64GB502_MICROSTICK)
-    AD1CHS = 0x7; //MUXA uses AN7
-
-    // Get an ADC sample
-    AD1CON1bits.SAMP = 1; //Start sampling
-    for (w.Val = 0; w.Val < 1000; w.Val++); //Sample delay, conversion start automatically
-    AD1CON1bits.SAMP = 0; //Start sampling
-    for (w.Val = 0; w.Val < 1000; w.Val++); //Sample delay, conversion start automatically
-    while (!AD1CON1bits.DONE); //Wait for conversion to complete
-
-#elif defined(PIC24F_STARTER_KIT)
-    AD1CHS = 0x0; //MUXA uses AN0
-
-    // Get an ADC sample
-    AD1CON1bits.SAMP = 1; //Start sampling
-    for (w.Val = 0; w.Val < 1000; w.Val++); //Sample delay, conversion start automatically
-    AD1CON1bits.SAMP = 0; //Start sampling
-    for (w.Val = 0; w.Val < 1000; w.Val++); //Sample delay, conversion start automatically
-    while (!AD1CON1bits.DONE); //Wait for conversion to complete
-
-#elif defined(PIC32MX460F512L_PIM) || defined(PIC32_USB_STARTER_KIT) || defined(PIC32MX795F512L_PIM)
-    AD1PCFG = 0xFFFB; // PORTB = Digital; RB2 = analog
-    AD1CON1 = 0x0000; // SAMP bit = 0 ends sampling ...
-    // and starts converting
-    AD1CHS = 0x00020000; // Connect RB2/AN2 as CH0 input ..
-    // in this example RB2/AN2 is the input
-    AD1CSSL = 0;
-    AD1CON3 = 0x0002; // Manual Sample, Tad = internal 6 TPB
-    AD1CON2 = 0;
-    AD1CON1SET = 0x8000; // turn ADC ON
-
-    AD1CON1SET = 0x0002; // start sampling ...
-    for (w.Val = 0; w.Val < 1000; w.Val++); //Sample delay, conversion start automatically
-    AD1CON1CLR = 0x0002; // start Converting
-    while (!(AD1CON1 & 0x0001)); // conversion done?
-#else
-#error
-#endif
-
-    w.Val = ADC1BUF0;
-
-#endif
 
     return w;
 }//end ReadPOT
@@ -770,7 +476,7 @@ WORD_VAL ReadPOT(void) {
  *
  * Side Effects:    None
  *
- * Overview:        BlinkUSBStatus turns on and off LEDs 
+ * Overview:        BlinkUSBStatus turns on and off LEDs
  *                  corresponding to the USB device state.
  *
  * Note:            mLED macros can be found in HardwareProfile.h
@@ -900,7 +606,7 @@ void BlinkUSBStatus(void) {
 // additional comments near the function.
 
 // Note *: The "usb_20.pdf" specs indicate 500uA or 2.5mA, depending upon device classification. However,
-// the USB-IF has officially issued an ECN (engineering change notice) changing this to 2.5mA for all 
+// the USB-IF has officially issued an ECN (engineering change notice) changing this to 2.5mA for all
 // devices.  Make sure to re-download the latest specifications to get all of the newest ECNs.
 
 /******************************************************************************
@@ -961,8 +667,8 @@ void USBCBSuspend(void) {
  *					suspend mode (by "sending" 3+ms of idle).  Once in suspend
  *					mode, the host may wake the device back up by sending non-
  *					idle state signalling.
- *					
- *					This call back is invoked when a wakeup from USB suspend 
+ *
+ *					This call back is invoked when a wakeup from USB suspend
  *					is detected.
  *
  * Note:            None
@@ -1062,9 +768,9 @@ void USBCBErrorHandler(void) {
  *					that is being implemented.  For example, a HID
  *					class device needs to be able to respond to
  *					"GET REPORT" type of requests.  This
- *					is not a standard USB chapter 9 request, and 
+ *					is not a standard USB chapter 9 request, and
  *					therefore not handled by usb_device.c.  Instead
- *					this request should be handled by class specific 
+ *					this request should be handled by class specific
  *					firmware, such as that contained in usb_function_hid.c.
  *
  * Note:            None
@@ -1109,9 +815,9 @@ void USBCBStdSetDscHandler(void) {
  *
  * Overview:        This function is called when the device becomes
  *                  initialized, which occurs after the host sends a
- * 					SET_CONFIGURATION (wValue not = 0) request.  This 
- *					callback function should initialize the endpoints 
- *					for the device's usage according to the current 
+ * 					SET_CONFIGURATION (wValue not = 0) request.  This
+ *					callback function should initialize the endpoints
+ *					for the device's usage according to the current
  *					configuration.
  *
  * Note:            None
@@ -1143,44 +849,44 @@ void USBCBInitEP(void) {
  *					button on a remote control, it is nice that the
  *					IR receiver can detect this signalling, and then
  *					send a USB "command" to the PC to wake up.
- *					
+ *
  *					The USBCBSendResume() "callback" function is used
- *					to send this special USB signalling which wakes 
+ *					to send this special USB signalling which wakes
  *					up the PC.  This function may be called by
  *					application firmware to wake up the PC.  This
  *					function will only be able to wake up the host if
  *                  all of the below are true:
- *					
+ *
  *					1.  The USB driver used on the host PC supports
  *						the remote wakeup capability.
  *					2.  The USB configuration descriptor indicates
  *						the device is remote wakeup capable in the
  *						bmAttributes field.
  *					3.  The USB host PC is currently sleeping,
- *						and has previously sent your device a SET 
+ *						and has previously sent your device a SET
  *						FEATURE setup packet which "armed" the
- *						remote wakeup capability.   
+ *						remote wakeup capability.
  *
  *                  If the host has not armed the device to perform remote wakeup,
  *                  then this function will return without actually performing a
- *                  remote wakeup sequence.  This is the required behavior, 
- *                  as a USB device that has not been armed to perform remote 
+ *                  remote wakeup sequence.  This is the required behavior,
+ *                  as a USB device that has not been armed to perform remote
  *                  wakeup must not drive remote wakeup signalling onto the bus;
  *                  doing so will cause USB compliance testing failure.
- *                  
+ *
  *					This callback should send a RESUME signal that
  *                  has the period of 1-15ms.
  *
  * Note:            This function does nothing and returns quickly, if the USB
- *                  bus and host are not in a suspended condition, or are 
+ *                  bus and host are not in a suspended condition, or are
  *                  otherwise not in a remote wakeup ready state.  Therefore, it
- *                  is safe to optionally call this function regularly, ex: 
+ *                  is safe to optionally call this function regularly, ex:
  *                  anytime application stimulus occurs, as the function will
  *                  have no effect, until the bus really is in a state ready
- *                  to accept remote wakeup. 
+ *                  to accept remote wakeup.
  *
  *                  When this function executes, it may perform clock switching,
- *                  depending upon the application specific code in 
+ *                  depending upon the application specific code in
  *                  USBCBWakeFromSuspend().  This is needed, since the USB
  *                  bus will no longer be suspended by the time this function
  *                  returns.  Therefore, the USB module will need to be ready
@@ -1218,9 +924,9 @@ void USBCBSendResume(void) {
     //usually just before the host goes to standby mode (note: it will only
     //send this SET_FEATURE request if the configuration descriptor declares
     //the device as remote wakeup capable, AND, if the feature is enabled
-    //on the host (ex: on Windows based hosts, in the device manager 
-    //properties page for the USB device, power management tab, the 
-    //"Allow this device to bring the computer out of standby." checkbox 
+    //on the host (ex: on Windows based hosts, in the device manager
+    //properties page for the USB device, power management tab, the
+    //"Allow this device to bring the computer out of standby." checkbox
     //should be checked).
     if (USBGetRemoteWakeupStatus() == TRUE) {
         //Verify that the USB bus is in fact suspended, before we send
@@ -1237,7 +943,7 @@ void USBCBSendResume(void) {
             //Section 7.1.7.7 of the USB 2.0 specifications indicates a USB
             //device must continuously see 5ms+ of idle on the bus, before it sends
             //remote wakeup signalling.  One way to be certain that this parameter
-            //gets met, is to add a 2ms+ blocking delay here (2ms plus at 
+            //gets met, is to add a 2ms+ blocking delay here (2ms plus at
             //least 3ms from bus idle to USBIsBusSuspended() == TRUE, yeilds
             //5ms+ total delay since start of idle).
             delay_count = 3600U;
@@ -1308,11 +1014,11 @@ BOOL USER_USB_CALLBACK_EVENT_HANDLER(int event, void *pdata, WORD size) {
         case EVENT_TRANSFER_TERMINATED:
             //Add application specific callback task or callback function here if desired.
             //The EVENT_TRANSFER_TERMINATED event occurs when the host performs a CLEAR
-            //FEATURE (endpoint halt) request on an application endpoint which was 
+            //FEATURE (endpoint halt) request on an application endpoint which was
             //previously armed (UOWN was = 1).  Here would be a good place to:
-            //1.  Determine which endpoint the transaction that just got terminated was 
+            //1.  Determine which endpoint the transaction that just got terminated was
             //      on, by checking the handle value in the *pdata.
-            //2.  Re-arm the endpoint if desired (typically would be the case for OUT 
+            //2.  Re-arm the endpoint if desired (typically would be the case for OUT
             //      endpoints).
             break;
         default:

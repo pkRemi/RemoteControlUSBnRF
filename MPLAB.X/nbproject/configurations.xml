@@ -5,8 +5,8 @@
                    displayName="Header Files"
                    projectFiles="true">
       <logicalFolder name="f3" displayName="Common" projectFiles="true">
-        <itemPath>../../../../Microchip/Include/Compiler.h</itemPath>
-        <itemPath>../../../../Microchip/Include/GenericTypeDefs.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/Compiler.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/GenericTypeDefs.h</itemPath>
       </logicalFolder>
       <logicalFolder name="f1" displayName="Hardware Profile" projectFiles="true">
         <itemPath>../HardwareProfile - PIC18F Starter Kit 1.h</itemPath>
@@ -27,21 +27,50 @@
         <itemPath>../HardwareProfile - LPC USB Development Kit - PIC18F14K50.h</itemPath>
         <itemPath>../HardwareProfile - LPC USB Development Kit - PIC16F1459.h</itemPath>
       </logicalFolder>
-      <logicalFolder name="f2" displayName="USB" projectFiles="true">
-        <itemPath>../../../../Microchip/Include/USB/usb.h</itemPath>
-        <itemPath>../../../../Microchip/Include/USB/usb_ch9.h</itemPath>
-        <itemPath>../../../../Microchip/Include/USB/usb_common.h</itemPath>
-        <itemPath>../../../../Microchip/Include/USB/usb_device.h</itemPath>
-        <itemPath>../../../../Microchip/USB/usb_device_local.h</itemPath>
-        <itemPath>../../../../Microchip/Include/USB/usb_function_hid.h</itemPath>
-        <itemPath>../../../../Microchip/Include/USB/usb_hal.h</itemPath>
-        <itemPath>../../../../Microchip/Include/USB/usb_hal_dspic33E.h</itemPath>
-        <itemPath>../../../../Microchip/USB/usb_hal_local.h</itemPath>
-        <itemPath>../../../../Microchip/Include/USB/usb_hal_pic18.h</itemPath>
-        <itemPath>../../../../Microchip/Include/USB/usb_hal_pic24.h</itemPath>
-        <itemPath>../../../../Microchip/Include/USB/usb_hal_pic24E.h</itemPath>
-        <itemPath>../../../../Microchip/Include/USB/usb_hal_pic32.h</itemPath>
-        <itemPath>../../../../Microchip/Include/USB/usb_hal_pic16f1.h</itemPath>
+      <logicalFolder name="USB" displayName="USB" projectFiles="true">
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_ch9.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_common.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_device.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_function_audio.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_function_ccid.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_function_cdc.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_function_generic.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_function_hid.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_function_midi.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_function_msd.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_function_phdc.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_function_phdc_com_model.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_hal.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_hal_dspic33E.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_hal_pic16f1.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_hal_pic18.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_hal_pic24.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_hal_pic24E.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_hal_pic24f.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_hal_pic32.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_host.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_host_android.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_host_audio_v1.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_host_cdc.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_host_cdc_interface.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_host_charger.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_host_generic.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_host_hid.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_host_hid_parser.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_host_midi.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_host_msd.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_host_msd_scsi.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_host_printer.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_host_printer_esc_pos.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_host_printer_pcl_5.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_host_printer_postscript.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_host_printer_primitives.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_otg.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_printer_pos_bixolon_srp_270.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_printer_pos_epson_tm_t88iv.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_printer_pos_seiko_dpu_v445.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb_printer_pos_seiko_mpu_l465.h</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/Include/USB/usb.h</itemPath>
       </logicalFolder>
       <itemPath>../HardwareProfile.h</itemPath>
       <itemPath>../usb_config.h</itemPath>
@@ -62,12 +91,12 @@
                    displayName="Source Files"
                    projectFiles="true">
       <logicalFolder name="f1" displayName="USB" projectFiles="true">
-        <itemPath>../../../../Microchip/USB/usb_device.c</itemPath>
-        <itemPath>../../../../Microchip/USB/HID Device Driver/usb_function_hid.c</itemPath>
         <itemPath>../../../../Microchip/USB/usb_hal_pic24.c</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/USB/usb_device.c</itemPath>
+        <itemPath>../../../Microchip Solutions v2012-08-22/Microchip/USB/HID Device Driver/usb_function_hid.c</itemPath>
       </logicalFolder>
-      <itemPath>../main.c</itemPath>
       <itemPath>../usb_descriptors.c</itemPath>
+      <itemPath>RemoteControl.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -76,8 +105,8 @@
     </logicalFolder>
   </logicalFolder>
   <sourceRootList>
-    <Elem>../../../Microchip Solutions v2012-08-22/Microchip</Elem>
-    <Elem>../../../Microchip Solutions v2012-08-22/USB</Elem>
+    <Elem>../../../Microchip Solutions v2012-08-22/Microchip/Include</Elem>
+    <Elem>../../../Microchip Solutions v2012-08-22/Microchip/Common</Elem>
   </sourceRootList>
   <projectmakefile>Makefile</projectmakefile>
   <confs>
@@ -258,6 +287,13 @@
       <C18-LD>
       </C18-LD>
       <C18LanguageToolchain>
+        <property key="extended-mode" value="false"/>
+        <property key="extended-mode-mcc18" value="false"/>
+        <property key="extended-mode-mpasm" value="false"/>
+        <property key="extended-mode-mplink" value="false"/>
+        <property key="stack-analysis" value="false"/>
+        <property key="stack-analysis-mcc18" value="false"/>
+        <property key="stack-analysis-mplink" value="false"/>
       </C18LanguageToolchain>
       <ICD3PlatformTool>
       </ICD3PlatformTool>
@@ -513,6 +549,12 @@
         <property key="warning-level" value="2"/>
       </C18>
       <C18-AS>
+        <property key="cross.reference.file" value=""/>
+        <property key="default.radix" value="HEX"/>
+        <property key="enable.case.sensitivity" value="true"/>
+        <property key="hex.output.format" value="INHX32"/>
+        <property key="preprocessor.macros" value=""/>
+        <property key="warning.level" value="0"/>
       </C18-AS>
       <C18-LD>
       </C18-LD>
@@ -591,8 +633,18 @@
         <property key="warning-level" value="2"/>
       </C18>
       <C18-AS>
+        <property key="cross.reference.file" value=""/>
+        <property key="default.radix" value="HEX"/>
+        <property key="enable.case.sensitivity" value="true"/>
+        <property key="hex.output.format" value="INHX32"/>
+        <property key="preprocessor.macros" value=""/>
+        <property key="warning.level" value="0"/>
       </C18-AS>
       <C18-LD>
+        <property key="cod-file" value="false"/>
+        <property key="extra-lib-directories" value=""/>
+        <property key="hex-output-format" value="INHX32"/>
+        <property key="map-file" value=""/>
       </C18-LD>
       <C18LanguageToolchain>
         <property key="extended-mode" value="false"/>
