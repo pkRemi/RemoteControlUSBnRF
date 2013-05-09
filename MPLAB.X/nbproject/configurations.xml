@@ -116,7 +116,7 @@
         <targetDevice>PIC16F1459</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>ICD3PlatformTool</platformTool>
+        <platformTool>Simulator</platformTool>
         <languageToolchain>XC8</languageToolchain>
         <languageToolchainVersion>1.12</languageToolchainVersion>
         <platform>3</platform>
@@ -208,8 +208,8 @@
         <property key="opt-xc8-linker-serial" value=""/>
         <property key="program-the-device-with-default-config-words" value="true"/>
       </HI-TECH-LINK>
-      <ICD3PlatformTool>
-      </ICD3PlatformTool>
+      <Simulator>
+      </Simulator>
       <XC8-config-global>
       </XC8-config-global>
     </conf>
@@ -219,7 +219,7 @@
         <targetDevice>PIC18F14K50</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>ICD3PlatformTool</platformTool>
+        <platformTool>Simulator</platformTool>
         <languageToolchain>C18</languageToolchain>
         <languageToolchainVersion>3.44</languageToolchainVersion>
         <platform>3</platform>
@@ -295,8 +295,8 @@
         <property key="stack-analysis-mcc18" value="false"/>
         <property key="stack-analysis-mplink" value="false"/>
       </C18LanguageToolchain>
-      <ICD3PlatformTool>
-      </ICD3PlatformTool>
+      <Simulator>
+      </Simulator>
     </conf>
     <conf name="PIC18F46J50_PIM" type="2">
       <toolsSet>
@@ -304,7 +304,7 @@
         <targetDevice>PIC18F46J50</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>RealICEPlatformTool</platformTool>
+        <platformTool>Simulator</platformTool>
         <languageToolchain>C18</languageToolchain>
         <languageToolchainVersion>3.44</languageToolchainVersion>
         <platform>3</platform>
@@ -398,8 +398,8 @@
       </C18-LD>
       <C18LanguageToolchain>
       </C18LanguageToolchain>
-      <RealICEPlatformTool>
-      </RealICEPlatformTool>
+      <Simulator>
+      </Simulator>
     </conf>
     <conf name="PIC18F47J53_PIM" type="2">
       <toolsSet>
@@ -407,7 +407,7 @@
         <targetDevice>PIC18F47J53</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>RealICEPlatformTool</platformTool>
+        <platformTool>Simulator</platformTool>
         <languageToolchain>C18</languageToolchain>
         <languageToolchainVersion>3.44</languageToolchainVersion>
         <platform>3</platform>
@@ -476,8 +476,8 @@
       </C18-LD>
       <C18LanguageToolchain>
       </C18LanguageToolchain>
-      <RealICEPlatformTool>
-      </RealICEPlatformTool>
+      <Simulator>
+      </Simulator>
     </conf>
     <conf name="PIC18F87J50_PIM" type="2">
       <toolsSet>
@@ -485,7 +485,7 @@
         <targetDevice>PIC18F87J50</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>RealICEPlatformTool</platformTool>
+        <platformTool>Simulator</platformTool>
         <languageToolchain>C18</languageToolchain>
         <languageToolchainVersion>3.44</languageToolchainVersion>
         <platform>3</platform>
@@ -560,8 +560,8 @@
       </C18-LD>
       <C18LanguageToolchain>
       </C18LanguageToolchain>
-      <RealICEPlatformTool>
-      </RealICEPlatformTool>
+      <Simulator>
+      </Simulator>
     </conf>
     <conf name="PICDEM_FSUSB" type="2">
       <toolsSet>
@@ -656,34 +656,6 @@
         <property key="stack-analysis-mplink" value="false"/>
       </C18LanguageToolchain>
       <PICkit3PlatformTool>
-        <property key="AutoSelectMemRanges" value="auto"/>
-        <property key="Freeze Peripherals" value="true"/>
-        <property key="SecureSegment.SegmentProgramming" value="FullChipProgramming"/>
-        <property key="ToolFirmwareFilePath"
-                  value="Press to browse for a specific firmware version"/>
-        <property key="ToolFirmwareOption.UseLatestFirmware" value="true"/>
-        <property key="hwtoolclock.frcindebug" value="false"/>
-        <property key="memories.aux" value="false"/>
-        <property key="memories.bootflash" value="false"/>
-        <property key="memories.configurationmemory" value="false"/>
-        <property key="memories.eeprom" value="false"/>
-        <property key="memories.flashdata" value="true"/>
-        <property key="memories.id" value="false"/>
-        <property key="memories.programmemory" value="true"/>
-        <property key="memories.programmemory.end" value="0x7fff"/>
-        <property key="memories.programmemory.start" value="0x0"/>
-        <property key="poweroptions.powerenable" value="false"/>
-        <property key="programmertogo.imagename" value=""/>
-        <property key="programoptions.eraseb4program" value="true"/>
-        <property key="programoptions.pgmspeed" value="2"/>
-        <property key="programoptions.preserveeeprom" value="false"/>
-        <property key="programoptions.preserveprogramrange" value="false"/>
-        <property key="programoptions.preserveprogramrange.end" value="0x7fff"/>
-        <property key="programoptions.preserveprogramrange.start" value="0x0"/>
-        <property key="programoptions.preserveuserid" value="false"/>
-        <property key="programoptions.usehighvoltageonmclr" value="false"/>
-        <property key="programoptions.uselvpprogramming" value="false"/>
-        <property key="voltagevalue" value="5.0"/>
       </PICkit3PlatformTool>
     </conf>
     <conf name="PIC18F_Starter_Kit_1" type="2">
@@ -692,7 +664,7 @@
         <targetDevice>PIC18F46J50</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>RealICEPlatformTool</platformTool>
+        <platformTool>Simulator</platformTool>
         <languageToolchain>C18</languageToolchain>
         <languageToolchainVersion>3.44</languageToolchainVersion>
         <platform>3</platform>
@@ -761,8 +733,8 @@
       </C18-LD>
       <C18LanguageToolchain>
       </C18LanguageToolchain>
-      <RealICEPlatformTool>
-      </RealICEPlatformTool>
+      <Simulator>
+      </Simulator>
     </conf>
     <conf name="PIC24F_Starter_Kit_1" type="2">
       <toolsSet>
@@ -770,7 +742,7 @@
         <targetDevice>PIC24FJ256GB106</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>RealICEPlatformTool</platformTool>
+        <platformTool>Simulator</platformTool>
         <languageToolchain>XC16</languageToolchain>
         <languageToolchainVersion>1.00</languageToolchainVersion>
         <platform>3</platform>
@@ -843,8 +815,8 @@
         <property key="oXC16glb-macros" value=""/>
         <property key="output-file-format" value="elf"/>
       </C30Global>
-      <RealICEPlatformTool>
-      </RealICEPlatformTool>
+      <Simulator>
+      </Simulator>
     </conf>
     <conf name="PIC24FJ256DA210_PIM" type="2">
       <toolsSet>
@@ -852,7 +824,7 @@
         <targetDevice>PIC24FJ256DA210</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>RealICEPlatformTool</platformTool>
+        <platformTool>Simulator</platformTool>
         <languageToolchain>XC16</languageToolchain>
         <languageToolchainVersion>1.00</languageToolchainVersion>
         <platform>3</platform>
@@ -925,8 +897,8 @@
         <property key="oXC16glb-macros" value=""/>
         <property key="output-file-format" value="elf"/>
       </C30Global>
-      <RealICEPlatformTool>
-      </RealICEPlatformTool>
+      <Simulator>
+      </Simulator>
     </conf>
     <conf name="PIC24FJ64GB004_PIM" type="2">
       <toolsSet>
@@ -934,7 +906,7 @@
         <targetDevice>PIC24FJ64GB004</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>RealICEPlatformTool</platformTool>
+        <platformTool>Simulator</platformTool>
         <languageToolchain>XC16</languageToolchain>
         <languageToolchainVersion>1.00</languageToolchainVersion>
         <platform>3</platform>
@@ -1007,8 +979,8 @@
         <property key="oXC16glb-macros" value=""/>
         <property key="output-file-format" value="elf"/>
       </C30Global>
-      <RealICEPlatformTool>
-      </RealICEPlatformTool>
+      <Simulator>
+      </Simulator>
     </conf>
     <conf name="PIC24FJ256GB110_PIM" type="2">
       <toolsSet>
@@ -1016,7 +988,7 @@
         <targetDevice>PIC24FJ256GB110</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>RealICEPlatformTool</platformTool>
+        <platformTool>Simulator</platformTool>
         <languageToolchain>XC16</languageToolchain>
         <languageToolchainVersion>1.00</languageToolchainVersion>
         <platform>3</platform>
@@ -1089,8 +1061,8 @@
         <property key="oXC16glb-macros" value=""/>
         <property key="output-file-format" value="elf"/>
       </C30Global>
-      <RealICEPlatformTool>
-      </RealICEPlatformTool>
+      <Simulator>
+      </Simulator>
     </conf>
     <conf name="PIC24FJ256GB210_PIM" type="2">
       <toolsSet>
@@ -1098,7 +1070,7 @@
         <targetDevice>PIC24FJ256GB210</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>RealICEPlatformTool</platformTool>
+        <platformTool>Simulator</platformTool>
         <languageToolchain>XC16</languageToolchain>
         <languageToolchainVersion>1.00</languageToolchainVersion>
         <platform>3</platform>
@@ -1198,8 +1170,8 @@
         <property key="oXC16glb-macros" value=""/>
         <property key="output-file-format" value="elf"/>
       </C30Global>
-      <RealICEPlatformTool>
-      </RealICEPlatformTool>
+      <Simulator>
+      </Simulator>
     </conf>
     <conf name="PIC24FJ64GB502_Microstick" type="2">
       <toolsSet>
@@ -1207,7 +1179,7 @@
         <targetDevice>PIC24FJ64GB502</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>RealICEPlatformTool</platformTool>
+        <platformTool>Simulator</platformTool>
         <languageToolchain>XC16</languageToolchain>
         <languageToolchainVersion>1.00</languageToolchainVersion>
         <platform>3</platform>
@@ -1280,8 +1252,8 @@
         <property key="oXC16glb-macros" value=""/>
         <property key="output-file-format" value="elf"/>
       </C30Global>
-      <RealICEPlatformTool>
-      </RealICEPlatformTool>
+      <Simulator>
+      </Simulator>
     </conf>
     <conf name="PIC32MX460F512L_PIM" type="2">
       <toolsSet>
@@ -1289,7 +1261,7 @@
         <targetDevice>PIC32MX460F512L</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>RealICEPlatformTool</platformTool>
+        <platformTool>Simulator</platformTool>
         <languageToolchain>XC32</languageToolchain>
         <languageToolchainVersion></languageToolchainVersion>
         <platform>3</platform>
@@ -1371,8 +1343,8 @@
       </C32CPP>
       <C32Global>
       </C32Global>
-      <RealICEPlatformTool>
-      </RealICEPlatformTool>
+      <Simulator>
+      </Simulator>
     </conf>
     <conf name="PIC32MX795F512L_PIM" type="2">
       <toolsSet>
@@ -1380,7 +1352,7 @@
         <targetDevice>PIC32MX795F512L</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>RealICEPlatformTool</platformTool>
+        <platformTool>Simulator</platformTool>
         <languageToolchain>XC32</languageToolchain>
         <languageToolchainVersion></languageToolchainVersion>
         <platform>3</platform>
@@ -1462,48 +1434,8 @@
       </C32CPP>
       <C32Global>
       </C32Global>
-      <RealICEPlatformTool>
-        <property key="ADC @" value="true"/>
-        <property key="AutoSelectMemRanges" value="auto"/>
-        <property key="CHANGE NOTICE" value="true"/>
-        <property key="COMPARATOR" value="true"/>
-        <property key="DMA" value="true"/>
-        <property key="Freeze All Other Peripherals" value="true"/>
-        <property key="I2C@" value="true"/>
-        <property key="INPUT CAPTURE @" value="true"/>
-        <property key="INTERRUPT CONTROL" value="true"/>
-        <property key="OUTPUT COMPARE @" value="true"/>
-        <property key="PARALLEL MASTER/SLAVE PORT" value="true"/>
-        <property key="REAL TIME CLOCK" value="true"/>
-        <property key="SecureSegment.SegmentProgramming" value="FullChipProgramming"/>
-        <property key="TIMER1" value="true"/>
-        <property key="TIMER@" value="true"/>
-        <property key="ToolFirmwareFilePath" value=""/>
-        <property key="UART@" value="true"/>
-        <property key="debugoptions.useswbreakpoints" value="false"/>
-        <property key="hwtoolclock.frcindebug" value="false"/>
-        <property key="hwtoolclock.instructionspeed" value=""/>
-        <property key="hwtoolclock.units" value="mips"/>
-        <property key="memories.aux" value="false"/>
-        <property key="memories.eeprom" value="false"/>
-        <property key="memories.id" value="false"/>
-        <property key="memories.programmemory" value="true"/>
-        <property key="memories.programmemory.end" value="0x1d07ffff"/>
-        <property key="memories.programmemory.start" value="0x1d000000"/>
-        <property key="programoptions.eraseb4program" value="true"/>
-        <property key="programoptions.preserveeeprom" value="false"/>
-        <property key="programoptions.preserveprogramrange" value="false"/>
-        <property key="programoptions.preserveprogramrange.end" value="0x1d0001ff"/>
-        <property key="programoptions.preserveprogramrange.start" value="0x1d000000"/>
-        <property key="programoptions.usehighvoltageonmclr" value="false"/>
-        <property key="tracecontrol.disablemacros" value="false"/>
-        <property key="tracecontrol.medium" value="0"/>
-        <property key="tracecontrol.select" value="0"/>
-        <property key="tracecontrol.spiselect" value="0"/>
-        <property key="tracecontrol.tracebufmax" value="54600"/>
-        <property key="tracecontrol.tracefile" value="C:\Users\c13736\mpdeftrace.log"/>
-        <property key="tracecontrol.tracefilemax" value="54600"/>
-      </RealICEPlatformTool>
+      <Simulator>
+      </Simulator>
     </conf>
     <conf name="PIC32_USB_Starter_Board" type="2">
       <toolsSet>
@@ -1511,7 +1443,7 @@
         <targetDevice>PIC32MX795F512L</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>RealICEPlatformTool</platformTool>
+        <platformTool>Simulator</platformTool>
         <languageToolchain>XC32</languageToolchain>
         <languageToolchainVersion></languageToolchainVersion>
         <platform>3</platform>
@@ -1609,8 +1541,8 @@
       </C32CPP>
       <C32Global>
       </C32Global>
-      <RealICEPlatformTool>
-      </RealICEPlatformTool>
+      <Simulator>
+      </Simulator>
     </conf>
     <conf name="PIC32_USB_Starter_Kit_II" type="2">
       <toolsSet>
@@ -1618,7 +1550,7 @@
         <targetDevice>PIC32MX460F512L</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>RealICEPlatformTool</platformTool>
+        <platformTool>Simulator</platformTool>
         <languageToolchain>XC32</languageToolchain>
         <languageToolchainVersion></languageToolchainVersion>
         <platform>3</platform>
@@ -1700,8 +1632,8 @@
       </C32CPP>
       <C32Global>
       </C32Global>
-      <RealICEPlatformTool>
-      </RealICEPlatformTool>
+      <Simulator>
+      </Simulator>
     </conf>
   </confs>
 </configurationDescriptor>

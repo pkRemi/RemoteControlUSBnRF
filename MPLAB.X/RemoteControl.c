@@ -61,6 +61,10 @@ unsigned char ToSendDataBuffer[64];// TX_DATA_BUFFER_ADDRESS;
 USB_HANDLE USBOutHandle = 0; //USB handle.  Must be initialized to 0 at startup.
 USB_HANDLE USBInHandle = 0; //USB handle.  Must be initialized to 0 at startup.
 BOOL blinkStatusValid = TRUE;
+char telemetry[32] = {0};   // Telemetry data
+char newTelemetry = 0;      // Telemetry status byte
+int nRFpolldelay = 4000;       // Delay counter for nRF
+
 
 /** PRIVATE PROTOTYPES *********************************************/
 void BlinkUSBStatus(void);
@@ -74,6 +78,14 @@ void YourLowPriorityISRCode();
 void USBCBSendResume(void);
 WORD_VAL ReadPOT(int channel);
 
+void mInitSPI(void);
+void mInitnRF(void);
+char readnRFstatus(void);
+void sendSPI1string(char *spistring, int size);
+char readnRFsingle(void);
+void readnRFstring(char *strptr, char length);
+void ByteWriteSPI(unsigned char OpCode, unsigned char Data );
+void WriteSPI1(char data_out);
 
 /** VECTOR REMAPPING ***********************************************/
 
@@ -322,11 +334,18 @@ void UserInit(void) {
     mInitAllLEDs();
 
     //Initialize all of the push buttons
-    mInitAllSwitches();
-
+    //mInitAllSwitches();
+    TRISBbits.TRISB4=1; // nRF interrupt pin
+    TRISBbits.TRISB5=1;
     //Initialize I/O pin and ADC settings to collect potentiometer measurements
     mInitPOT();
 
+    //Initialize SPI
+
+    mInitSPI();
+
+    //Init nFR
+    mInitnRF();
     //initialize the variable holding the handle for the last
     // transmission
     USBOutHandle = 0;
@@ -334,6 +353,143 @@ void UserInit(void) {
 
     blinkStatusValid = TRUE;
 }//end UserInit
+
+void mInitSPI(void)
+{
+    SSPSTATbits.SMP = 0;  //0 = Input data sampled at middle of data output time
+    SSPSTATbits.CKE = 1; //0 = Transmit occurs on transition from Idle to active clock state
+    SSPCON1bits.CKP = 0;    //0 = Idle state for clock is a low level
+    SSPCON1bits.SSPM = 0b0010; //0001 = SPI Master mode, clock = FOSC/16
+    TRISCbits.TRISC7 = 0; // for SDO
+    TRISBbits.TRISB1 = 0; // for SCK
+    TRISBbits.TRISB2 = 0; // for /CS RB2
+    TRISBbits.TRISB3 = 0; // for CE RB3
+    PORTBbits.RB3 = 0;
+    CE_nRF = 0;             // Set CE low
+    CS_nRF = 1;             // Set /CS high
+    SSPCON1bits.SSPEN = 1; //1 = Enables serial port and configures SCK, SDO, SDI and SS as serial port pins
+
+
+}
+
+void mInitnRF(void)
+{
+    int sl;
+    char spistring[6] = {0x20, 0b00001011, 1, 2, 3, 4};
+    sl = 2;
+
+    sendSPI1string(spistring, sl);
+    spistring[0] = 0x2a;
+    spistring[1] = 0xa5;
+    spistring[2] = 0xd6;
+    spistring[3] = 0x65;
+    spistring[4] = 0xcb;
+    spistring[5] = 0x2a;
+    sl = 6;
+    sendSPI1string(spistring, sl);
+    spistring[0] = 0x31; // Payload width
+    spistring[1] = 20;
+    sl = 2;
+    sendSPI1string(spistring, sl);
+    CE_nRF = 1;     // Set CE high to start receiving data
+}
+void readnRFstring(char *strptr, char length)
+{
+    CS_nRF = 0;
+    SSPBUF = 0x61;
+    while(!PIR1bits.SSPIF); // Wait until transmit has finished
+    PIR1bits.SSPIF = 0;    // Reset interrupt flag
+
+    while(length)
+    {
+        length--;
+        SSPBUF = 0xFF;
+        while(!PIR1bits.SSPIF); // Wait until transmit has finished
+        PIR1bits.SSPIF = 0;    // Reset interrupt flag
+        *strptr++ = SSPBUF;    // Writes buffer to string then increments the pointer
+    }
+
+    CS_nRF = 1;
+}
+char readnRFsingle(void)
+{
+    char rdata;
+    CS_nRF = 0;
+    SSPBUF = 0x61;
+    while(!PIR1bits.SSPIF); // Wait until transmit has finished
+    PIR1bits.SSPIF = 0;    // Reset interrupt flag
+    SSPBUF = 0xFF;
+    while(!PIR1bits.SSPIF); // Wait until transmit has finished
+    PIR1bits.SSPIF = 0;    // Reset interrupt flag
+    rdata = SSPBUF;
+    CS_nRF = 1;
+    return rdata;
+}
+//char readnRFstatus(void)
+//{
+//    char rdata;
+//    CS_nRF = 0;
+//    SSPBUF = 0xFF;          // Send dummy string
+//    while(!PIR1bits.SSPIF); // Wait until transmit has finished
+//    PIR1bits.SSPIF = 0;    // Reset interrupt flag
+//    rdata = SSPBUF;
+//    CS_nRF = 1;
+//    return rdata;
+//}
+char readnRFstatus(void)
+{
+    char rdata;
+    CS_nRF = 0;
+//    SSPBUF = 0xFF;          // Send dummy string
+//    while(!PIR1bits.SSPIF); // Wait until transmit has finished
+//    PIR1bits.SSPIF = 0;    // Reset interrupt flag
+    WriteSPI1 ( 0x07 );         // Send Write OpCode
+    WriteSPI1 ( 0xFF );           // Write Byte to device
+    rdata = SSPBUF;
+    CS_nRF = 1;
+    return rdata;
+}
+void sendSPI1string(char *spistring, int size)
+{
+    int n=0;
+    CS_nRF = 0;                // Set /CS to low
+    for(n=0; n<size;n++)
+    {
+         SSPBUF = spistring[n];        //Transmit the data from the string
+         while(!PIR1bits.SSPIF); // Wait until transmit has finished
+         PIR1bits.SSPIF = 0;    // Reset interrupt flag
+    }
+    CS_nRF = 1;        // Set /CS to high
+}
+/********************************************************************
+*     Function Name:    ByteWriteSPI                              *
+*     Parameters:       OpCode/register, data.                      *
+*     Description:      Writes Data Byte to SPI device              *
+*                                                                   *
+********************************************************************/
+void ByteWriteSPI(unsigned char OpCode, unsigned char Data )
+{
+  CS_nRF = 0;                   // Select Device
+  WriteSPI1 ( OpCode );         // Send Write OpCode
+  WriteSPI1 ( Data );           // Write Byte to device
+  CS_nRF = 1;                   // Deselect device
+  //SPI1STATbits.SPITBF = 0;      //Clear Transmit Buffer Full Status bit
+}
+/********************************************************************
+*     Function Name : WriteSPI1                                     *
+*     Description   : This routine writes a single byte/word to     *
+*                     the SPI bus.                                  *
+*     Parameters    : Single data byte/word for SPI bus             *
+*     Return Value  : None                                          *
+********************************************************************/
+
+void WriteSPI1(char data_out)
+{
+    SSPBUF = data_out;                /*  byte write  */
+    while(!PIR1bits.SSPIF); // Wait until transmit has finished
+    PIR1bits.SSPIF = 0;    // Reset interrupt flag
+    //data_out = SPI1BUF;               //Avoiding overflow when reading
+}
 
 /********************************************************************
  * Function:        void ProcessIO(void)
@@ -353,6 +509,30 @@ void UserInit(void) {
  * Note:            None
  *******************************************************************/
 void ProcessIO(void) {
+// Read telemetry
+    int nn;
+    char nRFstatus = 0;
+    if (!PORTBbits.RB4)
+    {
+
+        nRFstatus = readnRFstatus();
+        if (nRFstatus & 0b01000000)
+        {
+        LATDbits.LATD2 = 1;
+            LATDbits.LATD2 = !LATDbits.LATD2;
+            readnRFstring(telemetry, 20);
+            ByteWriteSPI(0x27 , 0b01000000);
+            newTelemetry = 1;
+        LATDbits.LATD2 = 0;
+        }
+
+    }
+//    spitest = readnRFsingle();
+//    if (spitest == 0x48)
+//    {
+//        LATDbits.LATD2 = !LATDbits.LATD2;
+//    }
+
     //Blink the LEDs according to the USB device status
     if (blinkStatusValid) {
         BlinkUSBStatus();
@@ -397,10 +577,30 @@ void ProcessIO(void) {
                 }
                 break;
 
+//            case 0x37: //Read POT command.  Uses ADC to measure an analog voltage on one of the ANxx I/O pins, and returns the result to the host
+//            {
+//                WORD_VAL w;
+//                //Check to make sure the endpoint/buffer is free before we modify the contents
+//                if (!HIDTxHandleBusy(USBInHandle)) {
+//                    w = ReadPOT(0); //Use ADC to read the I/O pin voltage.  See the relevant HardwareProfile - xxxxx.h file for the I/O pin that it will measure.
+//                    //Some demo boards, like the PIC18F87J50 FS USB Plug-In Module board, do not have a potentiometer (when used stand alone).
+//                    //This function call will still measure the analog voltage on the I/O pin however.  To make the demo more interesting, it
+//                    //is suggested that an external adjustable analog voltage should be applied to this pin.
+//                    ToSendDataBuffer[0] = 0x37; //Echo back to the host the command we are fulfilling in the first byte.  In this case, the Read POT (analog voltage) command.
+//                    ToSendDataBuffer[1] = w.v[0]; //Measured analog voltage LSB
+//                    ToSendDataBuffer[2] = w.v[1]; //Measured analog voltage MSB
+//                    w = ReadPOT(1); //Use ADC to read the I/O pin voltage.  See the relevant HardwareProfile - xxxxx.h file for the I/O pin that it will measure.
+//                    ToSendDataBuffer[3] = w.v[0]; //Measured analog voltage LSB
+//                    ToSendDataBuffer[4] = w.v[1]; //Measured analog voltage MSB
+//
+//                    //Prepare the USB module to send the data packet to the host
+//                    USBInHandle = HIDTxPacket(HID_EP, (BYTE*) & ToSendDataBuffer[0], 64);
+//                }
+//            }
+//                break;
             case 0x37: //Read POT command.  Uses ADC to measure an analog voltage on one of the ANxx I/O pins, and returns the result to the host
             {
                 WORD_VAL w;
-
                 //Check to make sure the endpoint/buffer is free before we modify the contents
                 if (!HIDTxHandleBusy(USBInHandle)) {
                     w = ReadPOT(0); //Use ADC to read the I/O pin voltage.  See the relevant HardwareProfile - xxxxx.h file for the I/O pin that it will measure.
@@ -408,12 +608,36 @@ void ProcessIO(void) {
                     //This function call will still measure the analog voltage on the I/O pin however.  To make the demo more interesting, it
                     //is suggested that an external adjustable analog voltage should be applied to this pin.
                     ToSendDataBuffer[0] = 0x37; //Echo back to the host the command we are fulfilling in the first byte.  In this case, the Read POT (analog voltage) command.
-                    ToSendDataBuffer[1] = w.v[0]; //Measured analog voltage LSB
-                    ToSendDataBuffer[2] = w.v[1]; //Measured analog voltage MSB
+                    ToSendDataBuffer[1] = telemetry[2]; //Measured analog voltage LSB
+                    ToSendDataBuffer[2] = telemetry[1]; //Measured analog voltage MSB
                     w = ReadPOT(1); //Use ADC to read the I/O pin voltage.  See the relevant HardwareProfile - xxxxx.h file for the I/O pin that it will measure.
-                    ToSendDataBuffer[3] = w.v[0]; //Measured analog voltage LSB
-                    ToSendDataBuffer[4] = w.v[1]; //Measured analog voltage MSB
+                    ToSendDataBuffer[3] = telemetry[4]; //Measured analog voltage LSB
+                    ToSendDataBuffer[4] = telemetry[3]; //Measured analog voltage MSB
 
+                    //Prepare the USB module to send the data packet to the host
+                    USBInHandle = HIDTxPacket(HID_EP, (BYTE*) & ToSendDataBuffer[0], 64);
+                }
+            }
+                break;
+            case 0x41: //Read telemetry command.  Takes the received telemetry and sends it via USB
+            {
+                //WORD_VAL w;
+                //Check to make sure the endpoint/buffer is free before we modify the contents
+                if (!HIDTxHandleBusy(USBInHandle)) {
+                    //w = ReadPOT(0); //Use ADC to read the I/O pin voltage.  See the relevant HardwareProfile - xxxxx.h file for the I/O pin that it will measure.
+                    //Some demo boards, like the PIC18F87J50 FS USB Plug-In Module board, do not have a potentiometer (when used stand alone).
+                    //This function call will still measure the analog voltage on the I/O pin however.  To make the demo more interesting, it
+                    //is suggested that an external adjustable analog voltage should be applied to this pin.
+                    if (newTelemetry)
+                    {
+                        ToSendDataBuffer[0] = 0x41; //Echo back to the host the command we are fulfilling in the first byte.  In this case, the Read POT (analog voltage) command.
+                        for (nn = 1; nn <21 ; nn++)
+                        {
+                            ToSendDataBuffer[nn] = telemetry[nn];
+                        }
+                    newTelemetry = 0;
+
+                    }
                     //Prepare the USB module to send the data packet to the host
                     USBInHandle = HIDTxPacket(HID_EP, (BYTE*) & ToSendDataBuffer[0], 64);
                 }
@@ -484,59 +708,6 @@ WORD_VAL ReadPOT(int channel) {
  *                  usb_device.c.
  *******************************************************************/
 void BlinkUSBStatus(void) {
-#if defined(PIC24FJ256DA210_DEV_BOARD)
-    // No need to clear UIRbits.SOFIF to 0 here.
-    // Callback caller is already doing that.
-#define BLINK_INTERVAL 20000
-#define BLANK_INTERVAL 200000
-
-    static WORD blink_count = 0;
-    static DWORD loop_count = 0;
-
-    if (loop_count == 0) {
-        if (blink_count != 0) {
-            loop_count = BLINK_INTERVAL;
-            if (mGetLED_1()) {
-                mLED_1_Off();
-                blink_count--;
-            } else {
-                mLED_1_On();
-            }
-        } else {
-            loop_count = BLANK_INTERVAL;
-            switch (USBDeviceState) {
-                case ATTACHED_STATE:
-                    blink_count = 1;
-                    break;
-                case POWERED_STATE:
-                    blink_count = 2;
-                    break;
-                case DEFAULT_STATE:
-                    blink_count = 3;
-                    break;
-                case ADR_PENDING_STATE:
-                    blink_count = 4;
-                    break;
-                case ADDRESS_STATE:
-                    blink_count = 5;
-                    break;
-                case CONFIGURED_STATE:
-                    blink_count = 6;
-                    break;
-                case DETACHED_STATE:
-                    //fall through
-                default:
-                    blink_count = 0;
-                    break;
-            }
-        }
-    } else {
-        loop_count--;
-    }
-
-#else
-    // No need to clear UIRbits.SOFIF to 0 here.
-    // Callback caller is already doing that.
     static WORD led_count = 0;
 
     if (led_count == 0)led_count = 10000U;
@@ -581,7 +752,7 @@ void BlinkUSBStatus(void) {
             }//end if
         }
     }
-#endif
+
 }//end BlinkUSBStatus
 
 
@@ -1028,4 +1199,5 @@ BOOL USER_USB_CALLBACK_EVENT_HANDLER(int event, void *pdata, WORD size) {
 }
 
 /** EOF main.c *************************************************/
+
 #endif

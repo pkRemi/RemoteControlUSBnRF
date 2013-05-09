@@ -135,10 +135,14 @@
     #define mInitSwitch3()      TRISBbits.TRISB5=1;
     #define sw2                 PORTBbits.RB4
     #define sw3                 PORTBbits.RB5
-    
+    /** SPI nRF ************************************************************/
+    #define CS_nRF               PORTBbits.RB2
+    #define CE_nRF               PORTBbits.RB3
+
+
     /** POT ************************************************************/
 //    #define mInitPOT()          {TRISAbits.TRISA0=1;ADCON0=0x01;ADCON2=0x3C;ADCON2bits.ADFM = 1;}
-    #define mInitPOT()          {TRISAbits.TRISA0=1;TRISAbits.TRISA1=1;ADCON0=0x01;ADCON2=0x3C;ADCON2bits.ADFM = 1;}
+    #define mInitPOT()          {TRISAbits.TRISA0=1;TRISAbits.TRISA1=1;ADCON0=0x01;ADCON2=0x0C;ADCON2bits.ADFM = 1;}
 
     /** USB external transceiver interface (optional) ******************/
     #define tris_usb_vpo        TRISBbits.TRISB3    // Output
