@@ -3,8 +3,9 @@
 
 #include "USB/usb.h"
 #include "HardwareProfile.h"
-#include"USB/usb_function_hid.h"
-
+#include "USB/usb_function_hid.h"
+#include <delays.h>
+#include <string.h>
 /** CONFIGURATION **************************************************/
 #pragma config PLLDIV   = 5         // (20 MHz crystal on PICDEM FS USB board)
 #pragma config CPUDIV   = OSC1_PLL2
@@ -63,9 +64,10 @@ USB_HANDLE USBInHandle = 0; //USB handle.  Must be initialized to 0 at startup.
 BOOL blinkStatusValid = TRUE;
 char telemetry[32] = {0};   // Telemetry data
 char newTelemetry = 0;      // Telemetry status byte
-int nRFpolldelay = 4000;       // Delay counter for nRF
-
-
+int nRFpolldelay = 400000000;       // Delay counter for nRF
+int LCDcount = 0;                  // Temporary counter for LCD testing
+char commStatus = 0;                // Communication status for RF
+char commMessage = 0;
 /** PRIVATE PROTOTYPES *********************************************/
 void BlinkUSBStatus(void);
 BOOL Switch2IsPressed(void);
@@ -82,10 +84,22 @@ void mInitSPI(void);
 void mInitnRF(void);
 char readnRFstatus(void);
 void sendSPI1string(char *spistring, int size);
+char readnRFbyte(char command);
 char readnRFsingle(void);
 void readnRFstring(char *strptr, char length);
 void ByteWriteSPI(unsigned char OpCode, unsigned char Data );
+void sendnRFstring(unsigned char *nRFstring, int size);
+unsigned char LDPageWriteSPI( unsigned char OpCode, unsigned char *wrptr, unsigned char strlength );
 void WriteSPI1(char data_out);
+void sendLCDsingle(char data);
+void sendLCDnibble(char data, BOOL RS);
+void mInitLCD(void);
+void sendLCDchar(char data, BOOL RS);
+void sendLCDstring(char *string);
+void sendLCDstringROM(rom char *string);
+void sendLCDcls(void);
+void sendLCDclearline2(void);
+
 
 /** VECTOR REMAPPING ***********************************************/
 
@@ -352,6 +366,8 @@ void UserInit(void) {
     USBInHandle = 0;
 
     blinkStatusValid = TRUE;
+    // Init LCD
+    mInitLCD();
 }//end UserInit
 
 void mInitSPI(void)
@@ -375,11 +391,11 @@ void mInitSPI(void)
 void mInitnRF(void)
 {
     int sl;
-    char spistring[6] = {0x20, 0b00001011, 1, 2, 3, 4};
+    char spistring[6] = {0x20, 0b00001001, 1, 2, 3, 4};
     sl = 2;
 
     sendSPI1string(spistring, sl);
-    spistring[0] = 0x2a;
+    spistring[0] = 0x2a; // Set RX_ADDR_P0 address
     spistring[1] = 0xa5;
     spistring[2] = 0xd6;
     spistring[3] = 0x65;
@@ -387,17 +403,33 @@ void mInitnRF(void)
     spistring[5] = 0x2a;
     sl = 6;
     sendSPI1string(spistring, sl);
+
+    spistring[0] = 0x30; // Set TX_ADDR address
+    sendSPI1string(spistring, sl);
+
+
     spistring[0] = 0x31; // Payload width
-    spistring[1] = 20;
+    spistring[1] = 22;   //Width
     sl = 2;
     sendSPI1string(spistring, sl);
+    ByteWriteSPI(0x3D, 0b00000110);  //Enables dynamic payload length and Payload with ACK
+    ByteWriteSPI(0x3C, 0b00000001);  //Enables dynamic payload length on data pipe 0
+    ByteWriteSPI(0x21, 0b00111111);  //Enables Auto Ack
+
+
+    ByteWriteSPI(0xE2 , 0xFF); //Flush RX buffer
+    ByteWriteSPI(0xE1 , 0xFF); //Flush TX buffer
+    ByteWriteSPI(0x27 , 0b01110000); // Clear all flags
+    ByteWriteSPI(0x20 , 0b00001011); // Powerup
     CE_nRF = 1;     // Set CE high to start receiving data
+    Delay10KTCYx(24); // Powerup delay 5ms * 48MHz = 240000
 }
 void readnRFstring(char *strptr, char length)
 {
     CS_nRF = 0;
     SSPBUF = 0x61;
     while(!PIR1bits.SSPIF); // Wait until transmit has finished
+    Delay10TCYx(20);        // Delay needed from Errata
     PIR1bits.SSPIF = 0;    // Reset interrupt flag
 
     while(length)
@@ -405,6 +437,7 @@ void readnRFstring(char *strptr, char length)
         length--;
         SSPBUF = 0xFF;
         while(!PIR1bits.SSPIF); // Wait until transmit has finished
+        Delay10TCYx(20);        // Delay needed from Errata
         PIR1bits.SSPIF = 0;    // Reset interrupt flag
         *strptr++ = SSPBUF;    // Writes buffer to string then increments the pointer
     }
@@ -417,9 +450,27 @@ char readnRFsingle(void)
     CS_nRF = 0;
     SSPBUF = 0x61;
     while(!PIR1bits.SSPIF); // Wait until transmit has finished
+    Delay10TCYx(20);        // Delay needed from Errata
     PIR1bits.SSPIF = 0;    // Reset interrupt flag
     SSPBUF = 0xFF;
     while(!PIR1bits.SSPIF); // Wait until transmit has finished
+    Delay10TCYx(20);        // Delay needed from Errata
+    PIR1bits.SSPIF = 0;    // Reset interrupt flag
+    rdata = SSPBUF;
+    CS_nRF = 1;
+    return rdata;
+}
+char readnRFbyte(char command)
+{
+    char rdata;
+    CS_nRF = 0;
+    SSPBUF = command;
+    while(!PIR1bits.SSPIF); // Wait until transmit has finished
+    Delay10TCYx(20);        // Delay needed from Errata
+    PIR1bits.SSPIF = 0;    // Reset interrupt flag
+    SSPBUF = 0xFF;
+    while(!PIR1bits.SSPIF); // Wait until transmit has finished
+    Delay10TCYx(20);        // Delay needed from Errata
     PIR1bits.SSPIF = 0;    // Reset interrupt flag
     rdata = SSPBUF;
     CS_nRF = 1;
@@ -457,9 +508,106 @@ void sendSPI1string(char *spistring, int size)
     {
          SSPBUF = spistring[n];        //Transmit the data from the string
          while(!PIR1bits.SSPIF); // Wait until transmit has finished
+         Delay10TCYx(20);        // Delay needed from Errata
          PIR1bits.SSPIF = 0;    // Reset interrupt flag
     }
     CS_nRF = 1;        // Set /CS to high
+}
+void sendLCDsingle(char data)
+{
+    LATDbits.LATD3 = 0;    // Set strobe to low (should be redundant)
+    SSPBUF = data;         //Transmit the data from the string
+    while(!PIR1bits.SSPIF);// Wait until transmit has finished
+    Delay10TCYx(20);       // Delay needed from Errata
+    PIR1bits.SSPIF = 0;    // Reset interrupt flag
+    LATDbits.LATD3 = 1;    // Set strobe to high
+    Delay10TCYx(2);       // Wait for minimum 200ns
+    LATDbits.LATD3 = 0;    // Set strobe to low
+}
+void sendLCDnibble(char data, BOOL RS)
+{
+    char datao = 0;
+    datao = (data << 4);
+    if (RS)
+        datao = datao | 0b00000010;
+
+    sendLCDsingle(datao);           // Select data or instruction register
+    datao = datao | 0b00000001;
+    sendLCDsingle(datao);           // Set Enable
+    datao = datao & 0b11111110;
+    sendLCDsingle(datao);           // Reset Enable (strobe)
+
+}
+void mInitLCD(void)
+{
+    char ssworld[20];
+    sendLCDsingle(0x00);
+    Delay10KTCYx(72);              // Delay 15ms
+    sendLCDnibble(0b0011, 0);
+    Delay10KTCYx(5);              // Delay 4.1ms
+    sendLCDnibble(0b0011, 0);
+    Delay100TCYx(8);              // Delay 100us
+    sendLCDnibble(0b0011, 0);
+    Delay10KTCYx(5);              // Delay 4.1ms
+    sendLCDnibble(0b0010, 0);
+    sendLCDchar(0x28, 0); //4bit 2line 5x8
+    sendLCDchar(0b00001100, 0); //Blinking cursor
+    sendLCDchar(0x04, 0); // cursor dir
+    //sendLCDchar(0x85, 0); // no idea
+    //sendLCDchar(0x06, 0);
+    sendLCDcls();
+    //sendLCDchar(0x80, 0);
+
+
+//    sendLCDnibble(0b0010, 0);
+//    // Now the LCD is in 4 bit mode
+//    sendLCDnibble(0b1000, 0);       // 2 line, 5x8 dots
+//    sendLCDnibble(0b1000, 0);       // Display, cursor and blinking off
+//    sendLCDnibble(0b0001, 0);       // Clear screen, return home
+//    sendLCDnibble(0b0110, 0);       // Inc cursor to the right when writing and don’t shift screen
+//    sendLCDnibble(0b1111, 0);       // Display, cursor and blinking on
+    sendLCDstringROM("BalancingBallBot");
+    sendLCDchar(0xC0, 0);
+ //char *strcpy (auto char *s1, auto const char *s2);
+    //*strcpy(ssworld, "Is Cool!");
+    strcpypgm2ram( ssworld, "Is Cool!!");
+    sendLCDstring(ssworld);
+    //sendLCDstringROM("BEER -> YES");
+}
+void sendLCDclearline2(void)
+{
+    sendLCDchar(0xC0, 0);
+    sendLCDstringROM("                ");
+    sendLCDchar(0xC0, 0);
+    
+}
+void sendLCDcls(void)
+{
+    sendLCDchar(0x01, 0);         // Clear screen
+    Delay10KTCYx(3);              // Delay 4.1ms
+}
+void sendLCDchar(char data, BOOL RS)
+{
+    char datao = 0;
+    datao = data >> 4;
+    sendLCDnibble(datao, RS); // Send ms nibble
+    datao = data;
+    sendLCDnibble(datao, RS); // Send ls nibble
+}
+void sendLCDstringROM(rom char *string)
+{
+  char n = 0;                    //
+  char temp;                     //
+  while(temp = string[n++])       //
+    sendLCDchar(temp, 1);            //
+}
+void sendLCDstring(char *string)
+{
+  char n = 0;                    //
+  char temp;                     //
+  while(temp = string[n++])       //
+    sendLCDchar(temp, 1);            //
+
 }
 /********************************************************************
 *     Function Name:    ByteWriteSPI                              *
@@ -487,6 +635,7 @@ void WriteSPI1(char data_out)
 {
     SSPBUF = data_out;                /*  byte write  */
     while(!PIR1bits.SSPIF); // Wait until transmit has finished
+    Delay10TCYx(20);        // Delay needed from Errata
     PIR1bits.SSPIF = 0;    // Reset interrupt flag
     //data_out = SPI1BUF;               //Avoiding overflow when reading
 }
@@ -512,146 +661,223 @@ void ProcessIO(void) {
 // Read telemetry
     int nn;
     char nRFstatus = 0;
-    if (!PORTBbits.RB4)
+    unsigned char serString[64];
+    unsigned char nRFregisters[10];
+    int iii;
+    unsigned char debugTemp;
+    while(1)
     {
-
-        nRFstatus = readnRFstatus();
-        if (nRFstatus & 0b01000000)
+        if((commStatus == 0) && commMessage != 2)//(commMessage != 2)
         {
-        LATDbits.LATD2 = 1;
-            LATDbits.LATD2 = !LATDbits.LATD2;
-            readnRFstring(telemetry, 20);
-            ByteWriteSPI(0x27 , 0b01000000);
-            newTelemetry = 1;
-        LATDbits.LATD2 = 0;
+            sendLCDclearline2();
+            sendLCDstringROM("RF comm : FAIL");
+            commMessage = 2;
         }
-
-    }
-//    spitest = readnRFsingle();
-//    if (spitest == 0x48)
-//    {
-//        LATDbits.LATD2 = !LATDbits.LATD2;
-//    }
-
-    //Blink the LEDs according to the USB device status
-    if (blinkStatusValid) {
-        BlinkUSBStatus();
-    }
-
-    // User Application USB tasks
-    if ((USBDeviceState < CONFIGURED_STATE) || (USBSuspendControl == 1)) return;
-
-    //Check if we have received an OUT data packet from the host
-    if (!HIDRxHandleBusy(USBOutHandle)) {
-        //We just received a packet of data from the USB host.
-        //Check the first byte of the packet to see what command the host
-        //application software wants us to fulfill.
-        switch (ReceivedDataBuffer[0]) //Look at the data the host sent, to see what kind of application specific command it sent.
+        if((commStatus == 1) && (commMessage != 3))
         {
-            case 0x80: //Toggle LEDs command
-                blinkStatusValid = FALSE; //Stop blinking the LEDs automatically, going to manually control them now.
-                if (mGetLED_1() == mGetLED_2()) {
-                    mLED_1_Toggle();
-                    mLED_2_Toggle();
-                } else {
-                    if (mGetLED_1()) {
-                        mLED_2_On();
-                    } else {
-                        mLED_2_Off();
-                    }
-                }
-                break;
-            case 0x81: //Get push button state
-                //Check to make sure the endpoint/buffer is free before we modify the contents
-                if (!HIDTxHandleBusy(USBInHandle)) {
-                    ToSendDataBuffer[0] = 0x81; //Echo back to the host PC the command we are fulfilling in the first byte.  In this case, the Get Pushbutton State command.
-                    if (sw3 == 1) //pushbutton not pressed, pull up resistor on circuit board is pulling the PORT pin high
-                    {
-                        ToSendDataBuffer[1] = 0x01;
-                    } else //sw3 must be == 0, pushbutton is pressed and overpowering the pull up resistor
-                    {
-                        ToSendDataBuffer[1] = 0x00;
-                    }
-                    //Prepare the USB module to send the data packet to the host
-                    USBInHandle = HIDTxPacket(HID_EP, (BYTE*) & ToSendDataBuffer[0], 64);
-                }
-                break;
+            sendLCDclearline2();
+            sendLCDstringROM("RF comm : OK");
+            commMessage = 3;
+        }
+        
+        for(iii=0; iii<10;iii++)
+        {
+            nRFregisters[iii] = readnRFbyte(iii);
+        }
+        if (!PORTBbits.RB4) // Check nRF Interrupt pin
+        {
 
-//            case 0x37: //Read POT command.  Uses ADC to measure an analog voltage on one of the ANxx I/O pins, and returns the result to the host
-//            {
-//                WORD_VAL w;
-//                //Check to make sure the endpoint/buffer is free before we modify the contents
-//                if (!HIDTxHandleBusy(USBInHandle)) {
-//                    w = ReadPOT(0); //Use ADC to read the I/O pin voltage.  See the relevant HardwareProfile - xxxxx.h file for the I/O pin that it will measure.
-//                    //Some demo boards, like the PIC18F87J50 FS USB Plug-In Module board, do not have a potentiometer (when used stand alone).
-//                    //This function call will still measure the analog voltage on the I/O pin however.  To make the demo more interesting, it
-//                    //is suggested that an external adjustable analog voltage should be applied to this pin.
-//                    ToSendDataBuffer[0] = 0x37; //Echo back to the host the command we are fulfilling in the first byte.  In this case, the Read POT (analog voltage) command.
-//                    ToSendDataBuffer[1] = w.v[0]; //Measured analog voltage LSB
-//                    ToSendDataBuffer[2] = w.v[1]; //Measured analog voltage MSB
-//                    w = ReadPOT(1); //Use ADC to read the I/O pin voltage.  See the relevant HardwareProfile - xxxxx.h file for the I/O pin that it will measure.
-//                    ToSendDataBuffer[3] = w.v[0]; //Measured analog voltage LSB
-//                    ToSendDataBuffer[4] = w.v[1]; //Measured analog voltage MSB
-//
-//                    //Prepare the USB module to send the data packet to the host
-//                    USBInHandle = HIDTxPacket(HID_EP, (BYTE*) & ToSendDataBuffer[0], 64);
-//                }
-//            }
-//                break;
-            case 0x37: //Read POT command.  Uses ADC to measure an analog voltage on one of the ANxx I/O pins, and returns the result to the host
+            nRFstatus = readnRFstatus();
+            if (nRFstatus & 0b01000000)
             {
-                WORD_VAL w;
-                //Check to make sure the endpoint/buffer is free before we modify the contents
-                if (!HIDTxHandleBusy(USBInHandle)) {
-                    w = ReadPOT(0); //Use ADC to read the I/O pin voltage.  See the relevant HardwareProfile - xxxxx.h file for the I/O pin that it will measure.
-                    //Some demo boards, like the PIC18F87J50 FS USB Plug-In Module board, do not have a potentiometer (when used stand alone).
-                    //This function call will still measure the analog voltage on the I/O pin however.  To make the demo more interesting, it
-                    //is suggested that an external adjustable analog voltage should be applied to this pin.
-                    ToSendDataBuffer[0] = 0x37; //Echo back to the host the command we are fulfilling in the first byte.  In this case, the Read POT (analog voltage) command.
-                    ToSendDataBuffer[1] = telemetry[2]; //Measured analog voltage LSB
-                    ToSendDataBuffer[2] = telemetry[1]; //Measured analog voltage MSB
-                    w = ReadPOT(1); //Use ADC to read the I/O pin voltage.  See the relevant HardwareProfile - xxxxx.h file for the I/O pin that it will measure.
-                    ToSendDataBuffer[3] = telemetry[4]; //Measured analog voltage LSB
-                    ToSendDataBuffer[4] = telemetry[3]; //Measured analog voltage MSB
-
-                    //Prepare the USB module to send the data packet to the host
-                    USBInHandle = HIDTxPacket(HID_EP, (BYTE*) & ToSendDataBuffer[0], 64);
-                }
-            }
-                break;
-            case 0x41: //Read telemetry command.  Takes the received telemetry and sends it via USB
-            {
-                //WORD_VAL w;
-                //Check to make sure the endpoint/buffer is free before we modify the contents
-                if (!HIDTxHandleBusy(USBInHandle)) {
-                    //w = ReadPOT(0); //Use ADC to read the I/O pin voltage.  See the relevant HardwareProfile - xxxxx.h file for the I/O pin that it will measure.
-                    //Some demo boards, like the PIC18F87J50 FS USB Plug-In Module board, do not have a potentiometer (when used stand alone).
-                    //This function call will still measure the analog voltage on the I/O pin however.  To make the demo more interesting, it
-                    //is suggested that an external adjustable analog voltage should be applied to this pin.
-                    if (newTelemetry)
-                    {
-                        ToSendDataBuffer[0] = 0x41; //Echo back to the host the command we are fulfilling in the first byte.  In this case, the Read POT (analog voltage) command.
-                        for (nn = 1; nn <21 ; nn++)
-                        {
-                            ToSendDataBuffer[nn] = telemetry[nn];
-                        }
+                Delay10TCYx(100);
+                //LATDbits.LATD3 = 1;
+                //LATDbits.LATD2 = !LATDbits.LATD2;
+                readnRFstring(telemetry, 22);
+                ByteWriteSPI(0x27 , 0b01000000);
+                //ByteWriteSPI(0xE2 , 0xFF); //Flush SPI
+                nRFpolldelay = 400000000;
+                if(telemetry[0]!=0x42)
+                {
+                    LATDbits.LATD2 = 1;
+                    readnRFstatus();
+                    ByteWriteSPI(0x00, 0xFF);
+                    mInitnRF(); //Reinitialize nRF if there is an error...
                     newTelemetry = 0;
-
-                    }
-                    //Prepare the USB module to send the data packet to the host
-                    USBInHandle = HIDTxPacket(HID_EP, (BYTE*) & ToSendDataBuffer[0], 64);
+                    commStatus = 0;
                 }
-            }
-                break;
-        }
-        //Re-arm the OUT endpoint, so we can receive the next OUT data packet
-        //that the host may try to send us.
-        USBOutHandle = HIDRxPacket(HID_EP, (BYTE*) & ReceivedDataBuffer, 64);
-    }
+                else
+                {
+                    LATDbits.LATD2 = 0;
+                    newTelemetry = 1;
+                }
+                //LATDbits.LATD3 = 0;
 
+            }
+
+        }
+        if(telemetry[21]==0x44)
+        {
+            sendLCDclearline2();
+            sendLCDstringROM("0x44 received");
+        }
+
+        LCDcount++;
+        if(newTelemetry)
+        {
+            LCDcount = 0;
+            commStatus = 1;
+        }
+        if(LCDcount >= 5000)
+        {
+            commStatus = 0;
+            LCDcount = 0;
+        }
+
+
+        //Blink the LEDs according to the USB device status
+        if (blinkStatusValid) {
+            BlinkUSBStatus();
+        }
+
+        // User Application USB tasks
+        if ((USBDeviceState < CONFIGURED_STATE) || (USBSuspendControl == 1)) return;
+
+        //Check if we have received an OUT data packet from the host
+        if (!HIDRxHandleBusy(USBOutHandle)) {
+            //We just received a packet of data from the USB host.
+            //Check the first byte of the packet to see what command the host
+            //application software wants us to fulfill.
+            switch (ReceivedDataBuffer[0]) //Look at the data the host sent, to see what kind of application specific command it sent.
+            {
+                case 0x80: //Toggle LEDs command
+                    blinkStatusValid = FALSE; //Stop blinking the LEDs automatically, going to manually control them now.
+                    sendLCDclearline2();
+                    sendLCDstringROM("LED Manual");
+                    if (mGetLED_1() == mGetLED_2()) {
+                        mLED_1_Toggle();
+                        mLED_2_Toggle();
+                    } else {
+                        if (mGetLED_1()) {
+                            mLED_2_On();
+                        } else {
+                            mLED_2_Off();
+                        }
+                    }
+                    break;
+                case 0x81: //Get push button state
+                    //Check to make sure the endpoint/buffer is free before we modify the contents
+                    if (!HIDTxHandleBusy(USBInHandle)) {
+                        ToSendDataBuffer[0] = 0x81; //Echo back to the host PC the command we are fulfilling in the first byte.  In this case, the Get Pushbutton State command.
+                        if (sw3 == 1) //pushbutton not pressed, pull up resistor on circuit board is pulling the PORT pin high
+                        {
+                            ToSendDataBuffer[1] = 0x01;
+                        } else //sw3 must be == 0, pushbutton is pressed and overpowering the pull up resistor
+                        {
+                            ToSendDataBuffer[1] = 0x00;
+                        }
+                        //Prepare the USB module to send the data packet to the host
+                        USBInHandle = HIDTxPacket(HID_EP, (BYTE*) & ToSendDataBuffer[0], 64);
+                    }
+                    break;
+                case 0x82: //Motor enable toggle command
+                    sendLCDclearline2();
+                    sendLCDstringROM("Toggle Motors");
+                    serString[0] = 0x82;
+                    ByteWriteSPI(0xE1 , 0xFF); //Flush TX buffer
+                    LDPageWriteSPI(0xA8, serString, 32);
+                    break;
+
+                case 0x37: //Read POT command.  Uses ADC to measure an analog voltage on one of the ANxx I/O pins, and returns the result to the host
+                {
+                    WORD_VAL w;
+                    //Check to make sure the endpoint/buffer is free before we modify the contents
+                    if (!HIDTxHandleBusy(USBInHandle)) {
+                        w = ReadPOT(0); //Use ADC to read the I/O pin voltage.  See the relevant HardwareProfile - xxxxx.h file for the I/O pin that it will measure.
+                        //Some demo boards, like the PIC18F87J50 FS USB Plug-In Module board, do not have a potentiometer (when used stand alone).
+                        //This function call will still measure the analog voltage on the I/O pin however.  To make the demo more interesting, it
+                        //is suggested that an external adjustable analog voltage should be applied to this pin.
+                        ToSendDataBuffer[0] = 0x37; //Echo back to the host the command we are fulfilling in the first byte.  In this case, the Read POT (analog voltage) command.
+                        ToSendDataBuffer[1] = w.v[0]; //Measured analog voltage LSB
+                        ToSendDataBuffer[2] = w.v[1]; //Measured analog voltage MSB
+                        w = ReadPOT(1); //Use ADC to read the I/O pin voltage.  See the relevant HardwareProfile - xxxxx.h file for the I/O pin that it will measure.
+                        ToSendDataBuffer[3] = w.v[0]; //Measured analog voltage LSB
+                        ToSendDataBuffer[4] = w.v[1]; //Measured analog voltage MSB
+
+                        //Prepare the USB module to send the data packet to the host
+                        USBInHandle = HIDTxPacket(HID_EP, (BYTE*) & ToSendDataBuffer[0], 64);
+                    }
+                }
+                    break;
+
+                case 0x42: //Read telemetry command.  Takes the received telemetry and sends it via USB
+                {
+                    //WORD_VAL w;
+                    //Check to make sure the endpoint/buffer is free before we modify the contents
+                    if (!HIDTxHandleBusy(USBInHandle)) {
+
+                        if(newTelemetry)
+                        {
+                            ToSendDataBuffer[0] = 0x42; //Echo back to the host the command we are fulfilling in the first byte.
+                            for (nn = 1; nn <22 ; nn++)
+                            {
+                                ToSendDataBuffer[nn] = telemetry[nn];
+                            }
+                        newTelemetry = 0;
+                        debugTemp = ToSendDataBuffer[21];
+                        }
+                        else
+                        {
+                            ToSendDataBuffer[0] = 0x41; //No new telemetry
+
+                        }
+                        //Prepare the USB module to send the data packet to the host
+                        USBInHandle = HIDTxPacket(HID_EP, (BYTE*) & ToSendDataBuffer[0], 64);
+                    }
+                }
+                    break;
+            }
+            //Re-arm the OUT endpoint, so we can receive the next OUT data packet
+            //that the host may try to send us.
+            USBOutHandle = HIDRxPacket(HID_EP, (BYTE*) & ReceivedDataBuffer, 64);
+        }
+    }
 
 }//end ProcessIO
+/********************************************************************
+*     Function Name:    sendnRFstring                               *
+*     Parameters:       pointer to string, length of string.        *
+*     Description:      Writes a string to the transmit FIFO of nRF *
+*                       and toggels the CE line to start            *
+*                       transmission.                               *
+*                                                                   *
+********************************************************************/
+void sendnRFstring(unsigned char *nRFstring, int size)
+{
+    LDPageWriteSPI(0xA0, nRFstring, size);
 
+    Delay10TCYx(50);  // Delay more than 10us * 48MHz = 480 TCY
+    CE_nRF = 1;
+    Delay10TCYx(50);
+    CE_nRF = 0;
+}
+/********************************************************************
+*     Function Name:    LDPageWriteSPI                              *
+*     Parameters:       Opcode, pointer addr, string length         *
+*     Description:      Writes data string to SPI device            *
+*                       OpCode is the register that receives the    *
+*                       data                                        *
+*                                                                   *
+********************************************************************/
+unsigned char LDPageWriteSPI( unsigned char OpCode, unsigned char *wrptr, unsigned char strlength )
+{
+  CS_nRF = 0;                           // Select Device
+  WriteSPI1 ( OpCode );                 // send OpCode
+  sendSPI1string ( wrptr, strlength );    // Write Page to device
+  CS_nRF = 1;                           // Deselect Device
+  //SPI1STATbits.SPITBF = 0;              //Clear Transmit Buffer Full Status bit
+  return ( 0 );
+}
 /******************************************************************************
  * Function:        WORD_VAL ReadPOT(void)
  *

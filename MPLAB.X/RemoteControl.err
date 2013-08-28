@@ -1,0 +1,9 @@
+Warning[2066] C:\_Dev\RemoteControlUSBnRF\MPLAB.X\RemoteControl.c 569 : type qualifier mismatch in assignment
+Warning[2066] C:\_Dev\RemoteControlUSBnRF\MPLAB.X\RemoteControl.c 573 : type qualifier mismatch in assignment
+Warning[2066] C:\_Dev\RemoteControlUSBnRF\MPLAB.X\RemoteControl.c 580 : type qualifier mismatch in assignment
+Warning[2066] C:\_Dev\RemoteControlUSBnRF\MPLAB.X\RemoteControl.c 673 : type qualifier mismatch in assignment
+Warning[2066] C:\_Dev\RemoteControlUSBnRF\MPLAB.X\RemoteControl.c 679 : type qualifier mismatch in assignment
+Warning[2066] C:\_Dev\RemoteControlUSBnRF\MPLAB.X\RemoteControl.c 722 : type qualifier mismatch in assignment
+Warning[2066] C:\_Dev\RemoteControlUSBnRF\MPLAB.X\RemoteControl.c 756 : type qualifier mismatch in assignment
+Warning[2066] C:\_Dev\RemoteControlUSBnRF\MPLAB.X\RemoteControl.c 785 : type qualifier mismatch in assignment
+Warning[2054] C:\_Dev\RemoteControlUSBnRF\MPLAB.X\RemoteControl.c 895 : suspicious pointer conversion
