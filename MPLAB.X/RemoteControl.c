@@ -788,6 +788,17 @@ void ProcessIO(void) {
                     LDPageWriteSPI(0xA8, serString, 32);
                     break;
 
+                case 0x83: //SetValues command
+                    sendLCDclearline2();
+                    sendLCDstringROM("SetValuesUpdated");
+                    for (iii = 0; iii <32; iii++) // Copy the whole USB buffer to RF buffer
+                    {
+                        serString[iii] = ReceivedDataBuffer[iii];
+                    }
+                    ByteWriteSPI(0xE1 , 0xFF); //Flush TX buffer
+                    LDPageWriteSPI(0xA8, serString, 32);
+                    break;
+
                 case 0x37: //Read POT command.  Uses ADC to measure an analog voltage on one of the ANxx I/O pins, and returns the result to the host
                 {
                     WORD_VAL w;
